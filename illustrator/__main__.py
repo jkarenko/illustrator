@@ -115,25 +115,10 @@ def describe_style(image_url=None):
     return response.choices[0].message.content
 
 
-image_description = None
-reference_description = None
-
-if args.image_url or args.image_path:
-    print("Describing image...")
-    image_description = describe_image(image_url=image_url)
-    logging.info(f"Image description: {image_description}")
-
-if args.reference_image:
-    print("Describing reference image...")
-    reference_description = describe_style(image_url=reference_image_url)
-    logging.info(f"Reference description: {reference_description}")
-
-environment_description = None
-
-if args.environment:
-    print("Describing override environment...")
+def describe_override_environment(environment_description, image_description):
     response = client.chat.completions.create(
         model=MODEL,
+        temperature=TEMPERATURE,
         messages=[
             {
                 "role": "user",
@@ -144,6 +129,11 @@ if args.environment:
     )
     environment_description = response.choices[0].message.content
     logging.info(f"Environment description: {environment_description}")
+    return environment_description
+
+image_description = describe_image(image_url) if args.image_url or args.image_path else None
+reference_description = describe_style(reference_image_url) if args.reference_image else None
+environment_description = describe_override_environment(args.environment, image_description) if args.environment else None
 
 if not environment_description and reference_description:
     environment_description = reference_description
