@@ -1,116 +1,64 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import argparse
 import base64
 from random import choice
-from openai import OpenAI
 import logging
 import csv
+from openai import OpenAI
 from colorlog import ColoredFormatter
-
-
-def encode_image(image_path):
-    print(f"Encoding image: {image_path}")
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
-
 
 TEST = "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS:\n"
 MODEL = "gpt-4-vision-preview"
 TEMPERATURE = 0.0
 
-with open("styles.txt", "r") as f:
-    reader = csv.reader(f)
-    STYLE_LIST = [row[0] for row in reader]
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+with open("styles.txt") as f:
+    STYLE_LIST = [row[0] for row in csv.reader(f)]
 
 client = OpenAI()
 
-# Create the parser
 parser = argparse.ArgumentParser()
-
-parser.add_argument("--scene", default="", help="Scene description")
-parser.add_argument("--style", nargs="?", default="fitting the scene", help="Style description, e.g. " + ", ".join(STYLE_LIST))
-parser.add_argument("--dalle", choices=["2", "3"], default="3", help="Choose Dall-e version, either '2' or '3'")
-parser.add_argument("--optimized", action="store_true", default=False, help="Create an additional optimized prompt for Dall-e")
-parser.add_argument("--environment", type=str, help="Environment override, e.g. 'a fantasy world'")
-parser.add_argument("--reference-image", type=str, default="", help="Reference image for the illustration")
-parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode")
-parser.add_argument("--info", action="store_true", default=False, help="Print the prompt")
-
+parser.add_argument("--scene", default="")
+parser.add_argument("--style", default="fitting the scene", nargs="?", help=f"Style description, e.g. {', '.join(STYLE_LIST)}")
+parser.add_argument("--dalle", choices=["2", "3"], default="3")
+parser.add_argument("--optimized", action="store_true", default=False)
+parser.add_argument("--environment", type=str)
+parser.add_argument("--reference-image", type=str, default="")
+parser.add_argument("--debug", action="store_true", default=False)
+parser.add_argument("--info", action="store_true", default=False)
 visual_group = parser.add_argument_group("Image to text settings")
-visual_group.add_argument("--image-url", help="Use image at URL as scene descriptor")
-visual_group.add_argument("--image-path", help="Use image file as scene descriptor")
-visual_group.add_argument("--image-quality", choices=["high", "low"], default="auto", help="Image quality used during image to text, either 'high' or 'low'", )
-
-# Create dalle-3 group
+visual_group.add_argument("--image-url")
+visual_group.add_argument("--image-path")
+visual_group.add_argument("--image-quality", choices=["high", "low"], default="auto")
 dalle_3_group = parser.add_argument_group("Dall-e 3 specific settings")
-dalle_3_group.add_argument("--hd", action="store_true", default=False, help="High definition mode for more detailed images")
-dalle_3_group.add_argument("--detail", choices=["vivid", "natural"], default="vivid", help="Detail level, either 'vivid' or 'natural'")
-
-parser.add_argument("--size", choices=["1", "2", "3"], default="3", help="1=landscape (1792x1024) or small (256x256), 2=portrait (1024x1792) or medium (512x512), 3=square (1024x1024), default=3")
-parser.add_argument("--no-test", action="store_true", help="Disable test mode prompt hack")
+dalle_3_group.add_argument("--hd", action="store_true", default=False)
+dalle_3_group.add_argument("--detail", choices=["vivid", "natural"], default="vivid")
+parser.add_argument("--size", choices=["1", "2", "3"], default="3")
+parser.add_argument("--no-test", action="store_true")
 args = parser.parse_args()
 
-
-log_colors = {
-    'DEBUG': 'cyan',
-    'INFO': 'green',
-    'WARNING': 'yellow',
-    'ERROR': 'red',
-    'CRITICAL': 'red,bg_white',
-}
-
-formatter = ColoredFormatter(
-    "%(asctime)s%(log_color)s %(levelname)s%(reset)s:\n%(message)s\n",
-    log_colors=log_colors
-)
-
+log_colors = {'DEBUG': 'cyan', 'INFO': 'green', 'WARNING': 'yellow', 'ERROR': 'red', 'CRITICAL': 'red,bg_white'}
+formatter = ColoredFormatter("%(asctime)s%(log_color)s %(levelname)s%(reset)s:\n%(message)s\n", log_colors=log_colors)
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
-
 logger = logging.getLogger()
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
-# Check for mutual exclusivity
 if (args.image_url and args.image_path) or (args.dalle == "2" and args.hd):
     parser.error("Mutually exclusive arguments provided.")
-
 if args.style.lower() == "random":
     args.style = choice(STYLE_LIST)
 
-sizes_dalle_3 = {
-    "1": "1792x1024",
-    "2": "1024x1792",
-    "3": "1024x1024",
-}
-
-sizes_dalle_2 = {
-    "1": "256x256",
-    "2": "512x512",
-    "3": "1024x1024",
-}
-
-# Validate the --size argument
-if args.size not in sizes_dalle_3 and args.size not in sizes_dalle_2:
-    parser.error("Invalid --size argument. Please choose '1', '2', or '3'.")
-
-sizes = sizes_dalle_3 if args.dalle == "3" else sizes_dalle_2
+sizes = {"1": "1792x1024", "2": "1024x1792", "3": "1024x1024"} if args.dalle == "3" else {"1": "256x256", "2": "512x512", "3": "1024x1024"}
 encoded_image = encode_image(args.image_path) if args.image_path else None
-image_url = (
-    f"data:image/jpeg;base64,{encoded_image}" if encoded_image else args.image_url
-)
-encoded_reference_image = None
-if not args.reference_image.startswith("http"):
-    encoded_reference_image = (
-        encode_image(args.reference_image) if args.reference_image else None
-    )
-reference_image_url = (
-    f"data:image/jpeg;base64,{encoded_reference_image}"
-    if encoded_reference_image
-    else args.reference_image
-)
-# print(image_url)
+image_url = f"data:image/jpeg;base64,{encoded_image}" if encoded_image else args.image_url
+encoded_reference_image = encode_image(args.reference_image) if args.reference_image and not args.reference_image.startswith("http") else None
+reference_image_url = f"data:image/jpeg;base64,{encoded_reference_image}" if encoded_reference_image else args.reference_image
+
 
 
 def describe_image(image_url=None):
