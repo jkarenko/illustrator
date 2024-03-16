@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "illustrator"
+version = "0.1.0"
+description = "Combines two images into one thematically, or makes an image from a description."
+authors = ["jkarenko <juho.karenko@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+openai = "*"
+colorlog = "^6.8.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
