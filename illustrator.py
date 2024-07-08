@@ -80,7 +80,7 @@ def describe_image(image_url=None):
       {
         "role": "user",
         "content": [
-          {"type": "text", "text": f"Describe this image and all its entities in a non-provocative, non-sexualized way. Describe everything in great detail (person's/creature's gender presentation, ethnicity, age, height(short/average/tall), size(small/average/large)). Pay attention to character positions and facings. Start immediately with the description."},
+          {"type": "text", "text": "Describe this image and all its entities in a non-provocative, non-sexualized way. Describe everything in great detail (person's/creature's gender presentation, ethnicity, age, height(short/average/tall), size(small/average/large)). Pay attention to character positions and facings. Start immediately with the description."},
           {
             "type": "image_url",
             "image_url": {
@@ -103,7 +103,7 @@ def describe_style(image_url=None):
       {
         "role": "user",
         "content": [
-          {"type": "text", "text": f"Describe concisely the visual style only of this image in terms of setting (sci-fi, western, fantasy etc), colors (warm, cold, monochrome, faded, orange and teal, grayish etc), backdrop (outdoors, indoors, space, nature, grocery store etc)."},
+          {"type": "text", "text": "Describe concisely the visual style only of this image in terms of setting (sci-fi, western, fantasy etc), colors (warm, cold, monochrome, faded, orange and teal, grayish etc), backdrop (outdoors, indoors, space, nature, grocery store etc)."},
           {
             "type": "image_url",
             "image_url": {
@@ -122,17 +122,17 @@ image_description = None
 reference_description = None
 
 if args.image_url or args.image_file:
-  print(f"Describing image...")
+  print("Describing image...")
   image_description = describe_image(image_url=image_url)
 
 if args.reference_image:
-  print(f"Describing reference image...")
+  print("Describing reference image...")
   reference_description = describe_style(image_url=reference_image_url)
 
 environment_description = None
 
 if args.environment:
-  print(f"Describing override environment...")
+  print("Describing override environment...")
   response = client.chat.completions.create(
     model="gpt-4-1106-preview",
     messages=[
@@ -147,7 +147,7 @@ if not environment_description and reference_description:
   environment_description = reference_description
 
 if environment_description:
-  print(f"Re-describing scene with override environment...")
+  print("Re-describing scene with override environment...")
   response = client.chat.completions.create(
     model="gpt-4-1106-preview",
     messages=[
@@ -165,11 +165,11 @@ scene_description = f"\nOverview:\n{args.scene}\nDetails:\n{image_description}"
 
 optimized_prompt = None
 if args.optimized:
-  print(f"Creating optimized prompt for Dall-e...")
+  print("Creating optimized prompt for Dall-e...")
   completion = client.chat.completions.create(
     model="gpt-4-1106-preview",
     messages=[
-      {"role": "system", "content": f"You are a system that creates optimized dall-e 3 prompts."},
+      {"role": "system", "content": "You are a system that creates optimized dall-e 3 prompts."},
       {"role": "user", "content": f"Describe this creation so Dall-e 3 can recreate it accurately as a {args.style} style image: {scene_description}. More emphasis on overview if provided. Only use visual facts, opinions and describe it as if it was created in the style of {args.style}."},
     ]
   )
@@ -208,7 +208,7 @@ dalle_3_params = {
 image_params = dalle_3_params if args.dalle == '3' else dalle_2_params
 # print(f"\n{image_params}")
 
-print(f"Generating image...")
+print("Generating image...")
 response = client.images.generate(
   **dalle_3_params if args.dalle == '3' else dalle_2_params
 )
