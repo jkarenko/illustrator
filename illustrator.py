@@ -75,7 +75,7 @@ reference_image_url = f"data:image/jpeg;base64,{encoded_reference_image}" if enc
 
 def describe_image(image_url=None):
   response = client.chat.completions.create(
-    model="gpt-4-vision-preview",
+    model="gpt-4o",
     messages=[
       {
         "role": "user",
@@ -98,7 +98,7 @@ def describe_image(image_url=None):
 
 def describe_style(image_url=None):
   response = client.chat.completions.create(
-    model="gpt-4-vision-preview",
+    model="gpt-4o",
     messages=[
       {
         "role": "user",
