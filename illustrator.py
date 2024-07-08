@@ -180,7 +180,7 @@ if args.optimized:
   scene_prompt = optimized_prompt
 else:
   scene_prompt = f"\nScene:\n{scene_description}\n\nStyle:\n{args.style}\n\n{scene_prompt}"
-scene_prompt = TEST + scene_prompt if not args.no_test else scene_prompt
+scene_prompt = scene_prompt if args.no_test else TEST + scene_prompt
 if args.debug: print(scene_prompt)
 
 response = client.moderations.create(input=scene_prompt)
